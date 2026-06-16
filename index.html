@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>记忆胶囊 · Memory Capsule</title>
+  <meta name="description" content="将至亲留下的声音、故事和爱，变成可以永远对话的记忆" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500&family=Noto+Sans+SC:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #ffffff;
+      --bg2: #f7f6f3;
+      --bg3: #f0efe9;
+      --text1: #1a1a18;
+      --text2: #5f5e5a;
+      --text3: #9a9890;
+      --border: rgba(0,0,0,0.1);
+      --border2: rgba(0,0,0,0.18);
+      --green: #0F6E56;
+      --green2: #085041;
+      --green-light: #E1F5EE;
+      --green-mid: #5DCAA5;
+      --green-deep: #1D9E75;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #1c1c1a;
+        --bg2: #252523;
+        --bg3: #2e2e2b;
+        --text1: #f0efe9;
+        --text2: #a8a79f;
+        --text3: #6b6a63;
+        --border: rgba(255,255,255,0.1);
+        --border2: rgba(255,255,255,0.18);
+        --green-light: #0d3328;
+      }
+    }
+
+    html, body {
+      height: 100%;
+      font-family: 'Noto Sans SC', -apple-system, sans-serif;
+      background: var(--bg3);
+      color: var(--text1);
+    }
+
+    .app-wrap {
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 0;
+    }
+
+    .app {
+      width: 100%;
+      max-width: 480px;
+      min-height: 100vh;
+      background: var(--bg);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    .screen { display: none; flex-direction: column; flex: 1; animation: fadein .22s ease; }
+    .screen.active { display: flex; }
+    @keyframes fadein { from { opacity:0; transform:translateY(6px) } to { opacity:1; transform:none } }
+
+    /* ── NAV ── */
+    .nav {
+      display: flex; align-items: center; gap: 10px;
+      padding: 14px 16px;
+      border-bottom: 0.5px solid var(--border);
+      background: var(--bg);
+      position: sticky; top: 0; z-index: 10;
+    }
+    .nav-logo { font-family: 'Noto Serif SC', serif; font-size: 15px; font-weight: 500; color: var(--text1); }
+    .nav-spacer { flex: 1; }
+    .nav-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green-deep); animation: pulse 2s ease-in-out infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+    .nav-back { background: none; border: none; cursor: pointer; color: var(--text2); font-size: 14px; display: flex; align-items: center; gap: 4px; font-family: inherit; padding: 4px 0; }
+    .nav-back:hover { color: var(--text1); }
+    .nav-tag { font-size: 12px; color: var(--text3); }
+
+    /* ── STEP BAR ── */
+    .sbar {
+      display: flex; align-items: center;
+      padding: 12px 16px;
+      border-bottom: 0.5px solid var(--border);
+      background: var(--bg);
+    }
+    .si { display: flex; flex-direction: column; align-items: center; flex: 1; }
+    .sc {
+      width: 24px; height: 24px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 500;
+      border: 0.5px solid var(--border2);
+      background: var(--bg); color: var(--text3);
+      position: relative; z-index: 1; transition: all .2s;
+    }
+    .sc.a { background: var(--green); border-color: var(--green); color: #fff; }
+    .sc.d { background: var(--green-light); border-color: var(--green-mid); color: var(--green); }
+    .sl { font-size: 10px; color: var(--text3); margin-top: 3px; white-space: nowrap; }
+    .sl.a { color: var(--green); font-weight: 500; }
+    .sline { flex: 1; height: 0.5px; background: var(--border); margin-top: -12px; }
+    .sline.d { background: var(--green-mid); }
+
+    /* ── BODY ── */
+    .body { padding: 1rem; display: flex; flex-direction: column; gap: .875rem; overflow-y: auto; flex: 1; }
+
+    /* ── CARDS ── */
+    .card {
+      background: var(--bg);
+      border: 0.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1rem 1.125rem;
+    }
+    .card-hd { display: flex; align-items: center; gap: 10px; margin-bottom: .875rem; }
+    .card-ico {
+      width: 30px; height: 30px; border-radius: var(--radius-md);
+      background: var(--green-light); display: flex; align-items: center;
+      justify-content: center; color: var(--green); font-size: 15px; flex-shrink: 0;
+    }
+    .card-t { font-size: 14px; font-weight: 500; color: var(--text1); }
+    .card-sub { font-size: 11px; color: var(--text3); margin-top: 1px; }
+
+    /* ── FORM FIELDS ── */
+    .f { margin-bottom: .75rem; }
+    .f:last-child { margin-bottom: 0; }
+    .f label { display: block; font-size: 12px; color: var(--text2); margin-bottom: 5px; }
+    .f input, .f select, .f textarea {
+      width: 100%; font-size: 13px; font-family: inherit;
+      border: 0.5px solid var(--border2);
+      border-radius: var(--radius-md);
+      padding: 9px 12px;
+      background: var(--bg); color: var(--text1);
+      outline: none; transition: border-color .15s;
+      -webkit-appearance: none; appearance: none;
+    }
+    .f input:focus, .f select:focus, .f textarea:focus { border-color: var(--green-mid); }
+    .f textarea { resize: vertical; min-height: 72px; line-height: 1.6; }
+
+    /* ── TAGS ── */
+    .tags { display: flex; flex-wrap: wrap; gap: 6px; }
+    .tb {
+      padding: 5px 12px; border-radius: 20px; font-size: 12px; cursor: pointer;
+      border: 0.5px solid var(--border2);
+      background: var(--bg); color: var(--text2); font-family: inherit; transition: all .15s;
+    }
+    .tb.sel { background: var(--green-light); border-color: var(--green-mid); color: var(--green2); }
+
+    /* ── Q ITEMS ── */
+    .qi { padding: 10px; border: 0.5px solid var(--border); border-radius: var(--radius-md); margin-bottom: 7px; background: var(--bg2); }
+    .qi:last-child { margin-bottom: 0; }
+    .qt { font-size: 12px; color: var(--text1); margin-bottom: 5px; line-height: 1.5; }
+    .qi textarea {
+      width: 100%; font-size: 12px; font-family: inherit;
+      border: 0.5px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 7px 9px; min-height: 56px;
+      background: var(--bg); color: var(--text1);
+      outline: none; resize: vertical; line-height: 1.6;
+    }
+    .qi textarea:focus { border-color: var(--green-mid); }
+
+    /* ── UPLOAD ── */
+    .uz {
+      border: 0.5px dashed var(--border2);
+      border-radius: var(--radius-md);
+      padding: 1.25rem; text-align: center; cursor: pointer;
+      transition: all .15s; background: var(--bg2);
+    }
+    .uz:hover { border-color: var(--green-mid); background: var(--green-light); }
+    .uz p { font-size: 12px; color: var(--text2); margin-top: 6px; }
+    .uz span { font-size: 11px; color: var(--text3); display: block; margin-top: 3px; }
+    .fl { margin-top: 7px; display: flex; flex-direction: column; gap: 5px; }
+    .fi {
+      display: flex; align-items: center; gap: 7px;
+      padding: 7px 9px; background: var(--bg);
+      border: 0.5px solid var(--border); border-radius: var(--radius-md);
+      font-size: 12px; color: var(--text1);
+    }
+    .fi i { color: var(--green-deep); font-size: 14px; flex-shrink: 0; }
+    .fi-rm { margin-left: auto; cursor: pointer; color: var(--text3); font-size: 14px; background: none; border: none; }
+
+    /* ── BUTTONS ── */
+    .brow {
+      display: flex; gap: 8px;
+      padding: 1rem;
+      border-top: 0.5px solid var(--border);
+      background: var(--bg);
+      position: sticky; bottom: 0;
+    }
+    .btn-back2 {
+      padding: 10px 16px; border-radius: var(--radius-md);
+      border: 0.5px solid var(--border2);
+      background: transparent; color: var(--text2);
+      font-size: 13px; cursor: pointer; font-family: inherit;
+    }
+    .btn-back2:hover { background: var(--bg2); }
+    .btn-next2 {
+      flex: 1; padding: 11px; border-radius: var(--radius-md);
+      border: none; background: var(--green); color: #E1F5EE;
+      font-size: 13px; font-weight: 500; cursor: pointer; font-family: inherit;
+      transition: background .15s;
+    }
+    .btn-next2:hover { background: var(--green2); }
+
+    /* ── LANDING ── */
+    #s-land {
+      align-items: center; justify-content: center;
+      padding: 3rem 2rem; gap: 1.5rem; text-align: center;
+      min-height: 100vh;
+    }
+    .land-icon {
+      width: 80px; height: 80px; border-radius: 50%;
+      background: var(--green-light); border: 1.5px solid var(--green-mid);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 34px; color: var(--green); margin: 0 auto;
+      position: relative;
+    }
+    .land-ring {
+      position: absolute; inset: -10px; border-radius: 50%;
+      border: 1px solid var(--green-mid); opacity: .4;
+      animation: breathe 3s ease-in-out infinite;
+    }
+    @keyframes breathe { 0%,100%{transform:scale(1);opacity:.3} 50%{transform:scale(1.07);opacity:.65} }
+    .land-title { font-family: 'Noto Serif SC', serif; font-size: 26px; font-weight: 500; color: var(--text1); }
+    .land-sub { font-size: 14px; color: var(--text2); line-height: 1.8; max-width: 320px; }
+    .land-tags { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+    .land-tag {
+      font-size: 12px; padding: 4px 12px; border-radius: 20px;
+      background: var(--bg2); color: var(--text2); border: 0.5px solid var(--border);
+    }
+    .btn-p {
+      background: var(--green); color: #E1F5EE; border: none;
+      padding: 13px 28px; border-radius: var(--radius-lg);
+      font-size: 14px; font-weight: 500; cursor: pointer; font-family: inherit;
+      transition: background .15s; width: 100%; max-width: 300px;
+    }
+    .btn-p:hover { background: var(--green2); }
+    .btn-s {
+      background: transparent; color: var(--text2);
+      border: 0.5px solid var(--border2);
+      padding: 11px 28px; border-radius: var(--radius-lg);
+      font-size: 14px; cursor: pointer; font-family: inherit;
+      width: 100%; max-width: 300px;
+    }
+    .btn-s:hover { background: var(--bg2); }
+
+    /* ── GENERATE ── */
+    .gen-body { padding: 1rem; display: flex; flex-direction: column; gap: .875rem; flex: 1; }
+    .pb-wrap { background: var(--bg2); border-radius: 4px; height: 5px; overflow: hidden; }
+    .pb-fill { height: 100%; background: var(--green-deep); border-radius: 4px; transition: width .4s ease; }
+    .pb-lbl { font-size: 11px; color: var(--text3); text-align: right; margin-top: 4px; }
+    .gen-status { text-align: center; padding: 1.25rem 0 .75rem; }
+    .gen-ico {
+      width: 48px; height: 48px; border-radius: 50%;
+      background: var(--green-light); display: flex; align-items: center;
+      justify-content: center; font-size: 22px; color: var(--green);
+      margin: 0 auto 10px;
+    }
+    .gen-title { font-size: 15px; font-weight: 500; color: var(--text1); }
+    .gen-hint { font-size: 12px; color: var(--text2); margin-top: 4px; }
+    .result-box {
+      background: var(--bg2); border: 0.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1rem; font-size: 13px; line-height: 1.8;
+      color: var(--text1); white-space: pre-wrap; min-height: 80px;
+    }
+    .rtag {
+      display: inline-block; padding: 3px 9px;
+      background: var(--green-light); color: var(--green2);
+      border-radius: 20px; font-size: 11px; margin: 2px;
+    }
+    .info-banner {
+      background: var(--green-light); border: 0.5px solid var(--green-mid);
+      border-radius: var(--radius-md);
+      padding: 10px 12px; font-size: 12px; color: var(--green2);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .spin { animation: spin 1s linear infinite; display: inline-block; }
+    @keyframes spin { to { transform: rotate(360deg) } }
+
+    /* ── CHAT ── */
+    #s-chat { height: 100vh; }
+    .chat-hd {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 14px; border-bottom: 0.5px solid var(--border);
+      background: var(--bg); position: sticky; top: 0; z-index: 10;
+    }
+    .chat-av {
+      width: 38px; height: 38px; border-radius: 50%;
+      background: var(--green-light); display: flex; align-items: center;
+      justify-content: center; font-size: 18px; color: var(--green);
+      border: 1.5px solid var(--green-mid); position: relative; flex-shrink: 0;
+    }
+    .online {
+      width: 9px; height: 9px; background: var(--green-deep); border-radius: 50%;
+      position: absolute; bottom: 0; right: 0;
+      border: 2px solid var(--bg); animation: pulse 2s ease-in-out infinite;
+    }
+    .chat-hd-name { font-size: 14px; font-weight: 500; color: var(--text1); }
+    .chat-hd-sub { font-size: 11px; color: var(--green-deep); }
+    .chat-msgs {
+      flex: 1; overflow-y: auto;
+      padding: .875rem; display: flex; flex-direction: column; gap: 10px;
+    }
+    .msg { max-width: 76%; padding: 9px 13px; border-radius: 14px; font-size: 13px; line-height: 1.6; word-break: break-word; }
+    .mu { align-self: flex-end; background: var(--green); color: #E1F5EE; border-bottom-right-radius: 3px; }
+    .ma {
+      align-self: flex-start; background: var(--bg2); color: var(--text1);
+      border: 0.5px solid var(--border); border-bottom-left-radius: 3px;
+    }
+    .mt { font-size: 10px; color: var(--text3); margin-top: 2px; }
+    .mt-u { text-align: right; }
+    .typing {
+      display: flex; gap: 3px; align-items: center;
+      padding: 9px 13px; background: var(--bg2);
+      border: 0.5px solid var(--border);
+      border-radius: 14px; border-bottom-left-radius: 3px;
+      align-self: flex-start; width: fit-content;
+    }
+    .dot { width: 5px; height: 5px; background: var(--text3); border-radius: 50%; animation: bounce 1.2s ease-in-out infinite; }
+    .dot:nth-child(2) { animation-delay: .2s } .dot:nth-child(3) { animation-delay: .4s }
+    @keyframes bounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-5px)} }
+    .chat-bottom { background: var(--bg); border-top: 0.5px solid var(--border); }
+    .q-chips { display: flex; flex-wrap: wrap; gap: 6px; padding: .75rem .875rem .375rem; }
+    .qc {
+      font-size: 12px; padding: 5px 11px; border-radius: 14px;
+      background: var(--bg2); border: 0.5px solid var(--border);
+      color: var(--text2); cursor: pointer; font-family: inherit; transition: all .15s;
+    }
+    .qc:hover { border-color: var(--green-mid); color: var(--green2); background: var(--green-light); }
+    .chat-in-row { padding: .625rem .875rem .875rem; display: flex; gap: 7px; align-items: center; }
+    .chat-in {
+      flex: 1; border: 0.5px solid var(--border2);
+      border-radius: 18px; padding: 9px 14px; font-size: 13px;
+      font-family: inherit; background: var(--bg); color: var(--text1); outline: none;
+    }
+    .chat-in:focus { border-color: var(--green-mid); }
+    .send-btn {
+      width: 34px; height: 34px; border-radius: 50%;
+      background: var(--green); border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      color: white; font-size: 15px; flex-shrink: 0; transition: background .15s;
+    }
+    .send-btn:hover { background: var(--green2); }
+
+    /* ── FOOTER ── */
+    .footer-note {
+      text-align: center; font-size: 11px; color: var(--text3);
+      padding: .75rem 1rem; border-top: 0.5px solid var(--border);
+    }
+
+    @media (max-width: 480px) {
+      .app { max-width: 100%; }
+    }
+  </style>
+</head>
+<body>
+<div class="app-wrap">
+<div class="app" id="app">
+
+  <!-- ── LANDING ── -->
+  <div class="screen active" id="s-land">
+    <div class="land-icon">
+      <div class="land-ring"></div>
+      <i class="ti ti-candle"></i>
+    </div>
+    <div>
+      <div class="land-title">记忆胶囊</div>
+      <div style="font-size:12px;color:var(--text3);margin-top:3px;font-family:'Noto Serif SC',serif">Memory Capsule</div>
+    </div>
+    <div class="land-sub">将至亲留下的声音、故事和爱<br>变成可以永远对话的记忆</div>
+    <div class="land-tags">
+      <span class="land-tag">不是复活</span>
+      <span class="land-tag">不是欺骗</span>
+      <span class="land-tag">是爱的延续</span>
+    </div>
+    <button class="btn-p" onclick="go('s-step1')">为至亲创建记忆胶囊</button>
+    <button class="btn-s" onclick="loadDemo()">体验示例：李梅的胶囊</button>
+    <div class="footer-note">小雨知道妈妈已经不在了<br>这里保存的是妈妈留下的记忆和爱</div>
+  </div>
+
+  <!-- ── STEP 1 ── -->
+  <div class="screen" id="s-step1">
+    <div class="nav">
+      <button class="nav-back" onclick="go('s-land')"><i class="ti ti-arrow-left"></i> 返回</button>
+      <div class="nav-spacer"></div>
+      <div class="nav-tag">步骤 1 / 3</div>
+    </div>
+    <div class="sbar">
+      <div class="si"><div class="sc a" id="sc1">1</div><div class="sl a">基本信息</div></div>
+      <div class="sline" id="ln1"></div>
+      <div class="si"><div class="sc" id="sc2">2</div><div class="sl">引导问答</div></div>
+      <div class="sline" id="ln2"></div>
+      <div class="si"><div class="sc" id="sc3">3</div><div class="sl">上传素材</div></div>
+    </div>
+    <div class="body">
+      <div class="card">
+        <div class="card-hd"><div class="card-ico"><i class="ti ti-user"></i></div><div><div class="card-t">Ta 是谁？</div><div class="card-sub">帮助 AI 认识这个人</div></div></div>
+        <div class="f"><label>姓名</label><input id="f-name" placeholder="例如：李梅" /></div>
+        <div class="f"><label>与你的关系</label>
+          <select id="f-rel">
+            <option value="">请选择…</option>
+            <option>妈妈</option><option>爸爸</option><option>祖父</option>
+            <option>祖母</option><option>外祖父</option><option>外祖母</option>
+            <option>伴侣</option><option>朋友</option><option>其他</option>
+          </select>
+        </div>
+        <div class="f"><label>Ta 怎么称呼你？</label><input id="f-callme" placeholder="例如：小雨滴、宝贝" /></div>
+        <div class="f"><label>你怎么称呼 Ta？</label><input id="f-callher" placeholder="例如：妈妈、阿嬷" /></div>
+      </div>
+      <div class="card">
+        <div class="card-hd"><div class="card-ico"><i class="ti ti-palette"></i></div><div><div class="card-t">Ta 是什么样的人？</div><div class="card-sub">选择所有符合的标签</div></div></div>
+        <div class="f"><label>性格特点</label>
+          <div class="tags" id="tags">
+            <button class="tb" onclick="toggleTag(this)">温柔</button>
+            <button class="tb" onclick="toggleTag(this)">幽默</button>
+            <button class="tb" onclick="toggleTag(this)">严肃</button>
+            <button class="tb" onclick="toggleTag(this)">乐观</button>
+            <button class="tb" onclick="toggleTag(this)">细心</button>
+            <button class="tb" onclick="toggleTag(this)">爱操心</button>
+            <button class="tb" onclick="toggleTag(this)">话不多</button>
+            <button class="tb" onclick="toggleTag(this)">豁达</button>
+          </div>
+        </div>
+        <div class="f"><label>口头禅（选填）</label><input id="f-verbal" placeholder="例如：哎呀、你说呢" /></div>
+        <div class="f"><label>家乡 / 口音（选填）</label><input id="f-accent" placeholder="例如：四川成都" /></div>
+      </div>
+    </div>
+    <div class="brow">
+      <button class="btn-next2" style="width:100%" onclick="toStep2()">下一步：引导问答</button>
+    </div>
+  </div>
+
+  <!-- ── STEP 2 ── -->
+  <div class="screen" id="s-step2">
+    <div class="nav">
+      <button class="nav-back" onclick="go('s-step1')"><i class="ti ti-arrow-left"></i> 上一步</button>
+      <div class="nav-spacer"></div>
+      <div class="nav-tag">步骤 2 / 3</div>
+    </div>
+    <div class="sbar">
+      <div class="si"><div class="sc d"><i class="ti ti-check" style="font-size:11px"></i></div><div class="sl">基本信息</div></div>
+      <div class="sline d"></div>
+      <div class="si"><div class="sc a">2</div><div class="sl a">引导问答</div></div>
+      <div class="sline"></div>
+      <div class="si"><div class="sc">3</div><div class="sl">上传素材</div></div>
+    </div>
+    <div class="body">
+      <div class="card">
+        <div class="card-hd"><div class="card-ico"><i class="ti ti-message-circle"></i></div><div><div class="card-t">帮 Ta 留下回答</div><div class="card-sub">用 Ta 平时说话的方式来写，写多少都好</div></div></div>
+        <div class="qi"><div class="qt">Ta 最喜欢的食物是什么？有什么关于吃饭的记忆？</div><textarea id="q1" placeholder="用 Ta 的口吻，或你记得的细节…"></textarea></div>
+        <div class="qi"><div class="qt">Ta 有什么口头禅，或者特别爱说的一句话？</div><textarea id="q2"></textarea></div>
+        <div class="qi"><div class="qt">Ta 最骄傲的一件事，或最喜欢讲的故事？</div><textarea id="q3"></textarea></div>
+        <div class="qi"><div class="qt">当你犯错或遇到困难，Ta 一般怎么回应你？</div><textarea id="q4"></textarea></div>
+        <div class="qi"><div class="qt">Ta 最想对你说什么？（你觉得 Ta 会怎么说）</div><textarea id="q5"></textarea></div>
+      </div>
+    </div>
+    <div class="brow">
+      <button class="btn-back2" onclick="go('s-step1')">上一步</button>
+      <button class="btn-next2" onclick="toStep3()">下一步：上传素材</button>
+    </div>
+  </div>
+
+  <!-- ── STEP 3 ── -->
+  <div class="screen" id="s-step3">
+    <div class="nav">
+      <button class="nav-back" onclick="go('s-step2')"><i class="ti ti-arrow-left"></i> 上一步</button>
+      <div class="nav-spacer"></div>
+      <div class="nav-tag">步骤 3 / 3</div>
+    </div>
+    <div class="sbar">
+      <div class="si"><div class="sc d"><i class="ti ti-check" style="font-size:11px"></i></div><div class="sl">基本信息</div></div>
+      <div class="sline d"></div>
+      <div class="si"><div class="sc d"><i class="ti ti-check" style="font-size:11px"></i></div><div class="sl">引导问答</div></div>
+      <div class="sline d"></div>
+      <div class="si"><div class="sc a">3</div><div class="sl a">上传素材</div></div>
+    </div>
+    <div class="body">
+      <div class="card">
+        <div class="card-hd"><div class="card-ico"><i class="ti ti-photo"></i></div><div><div class="card-t">照片与视频</div><div class="card-sub">AI 从中学习外貌和表情</div></div></div>
+        <div class="uz" onclick="document.getElementById('up-media').click()">
+          <i class="ti ti-cloud-upload" style="font-size:22px;color:var(--text3)"></i>
+          <p>点击上传</p><span>JPG、PNG、MP4，最大 500MB</span>
+        </div>
+        <input type="file" id="up-media" multiple accept="image/*,video/*" style="display:none" onchange="addFiles(this,'fl-media','photo')">
+        <div class="fl" id="fl-media"></div>
+      </div>
+      <div class="card">
+        <div class="card-hd"><div class="card-ico"><i class="ti ti-microphone"></i></div><div><div class="card-t">声音录音</div><div class="card-sub">至少 3 分钟，用于声音克隆</div></div></div>
+        <div class="uz" onclick="document.getElementById('up-audio').click()">
+          <i class="ti ti-music" style="font-size:22px;color:var(--text3)"></i>
+          <p>上传音频文件</p><span>MP3、WAV、M4A</span>
+        </div>
+        <input type="file" id="up-audio" multiple accept="audio/*" style="display:none" onchange="addFiles(this,'fl-audio','music')">
+        <div class="fl" id="fl-audio"></div>
+      </div>
+      <div class="card">
+        <div class="card-hd"><div class="card-ico"><i class="ti ti-file-text"></i></div><div><div class="card-t">文字记录（选填）</div><div class="card-sub">聊天记录、日记、书信</div></div></div>
+        <div class="f"><label>直接粘贴文字</label><textarea id="f-rawtext" placeholder="聊天记录、日记片段…" style="min-height:80px"></textarea></div>
+      </div>
+    </div>
+    <div class="brow">
+      <button class="btn-back2" onclick="go('s-step2')">上一步</button>
+      <button class="btn-next2" onclick="startGenerate()">生成记忆档案 →</button>
+    </div>
+  </div>
+
+  <!-- ── GENERATE ── -->
+  <div class="screen" id="s-gen">
+    <div class="nav">
+      <div class="nav-logo">记忆胶囊</div>
+      <div class="nav-spacer"></div>
+      <div class="nav-dot"></div>
+    </div>
+    <div class="gen-body">
+      <div class="gen-status" id="gen-status">
+        <div class="gen-ico"><i class="ti ti-loader spin"></i></div>
+        <div class="gen-title">正在生成记忆档案…</div>
+        <div class="gen-hint">AI 正在读取所有信息，请稍候</div>
+      </div>
+      <div>
+        <div class="pb-wrap"><div class="pb-fill" id="pb" style="width:0%"></div></div>
+        <div class="pb-lbl" id="pb-lbl">0%</div>
+      </div>
+      <div class="card" id="result-card" style="display:none">
+        <div class="card-hd">
+          <div class="card-ico"><i class="ti ti-id-badge"></i></div>
+          <div><div class="card-t" id="result-name">记忆档案</div><div class="card-sub">由 AI 根据你提供的信息生成</div></div>
+        </div>
+        <div class="result-box" id="result-text"></div>
+        <div style="margin-top:10px" id="result-tags-wrap"></div>
+      </div>
+      <div class="info-banner" id="result-banner" style="display:none">
+        <i class="ti ti-check" style="font-size:16px;flex-shrink:0"></i>
+        档案已生成，可以开始和 Ta 说话了
+      </div>
+      <div id="result-actions" style="display:none">
+        <button class="btn-p" style="max-width:100%" onclick="openChat()">开始和 Ta 说话 →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── CHAT ── -->
+  <div class="screen" id="s-chat">
+    <div class="chat-hd">
+      <div class="chat-av">
+        <i class="ti ti-user" style="font-size:17px;color:var(--green)"></i>
+        <div class="online"></div>
+      </div>
+      <div>
+        <div class="chat-hd-name" id="chat-hd-name">Ta 的记忆</div>
+        <div class="chat-hd-sub">记忆胶囊 · 在线</div>
+      </div>
+      <div style="margin-left:auto">
+        <button class="nav-back" onclick="go('s-land')" style="font-size:12px">
+          <i class="ti ti-home"></i>
+        </button>
+      </div>
+    </div>
+    <div class="chat-msgs" id="chat-msgs">
+      <div style="text-align:center;font-size:11px;color:var(--text3);padding:6px 0" id="chat-welcome"></div>
+    </div>
+    <div class="chat-bottom">
+      <div class="q-chips" id="q-chips"></div>
+      <div class="chat-in-row">
+        <input class="chat-in" id="chat-input" placeholder="问 Ta 一个问题…" onkeydown="if(event.key==='Enter')sendMsg()" />
+        <button class="send-btn" onclick="sendMsg()" aria-label="发送"><i class="ti ti-send"></i></button>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<script>
+  /* ── STATE ── */
+  let persona = '';
+  let capsule = { name:'', rel:'', callme:'', callher:'', tags:[], verbal:'', accent:'', qs:{}, rawtext:'' };
+  let chatHistory = [];
+  let isBusy = false;
+
+  const ANTHROPIC_KEY = 'YOUR_API_KEY_HERE'; // 部署时替换为真实 Key
+
+  const DEMO = {
+    name:'李梅', rel:'妈妈', callme:'小雨滴', callher:'妈妈',
+    tags:['温柔','乐观','爱操心'], verbal:'哎呀', accent:'四川成都',
+    qs:{
+      q1:'最爱红烧肉，说要少放糖多放酱油，炖够一小时才算数',
+      q2:'哎呀！还有"你说呢"，反问你让你自己想',
+      q3:'最爱讲自己年轻时骑自行车走川藏线的故事，说那时候不怕死',
+      q4:'从不骂人，会问：你觉得哪里做错了？让你自己先说',
+      q5:'妈妈希望你善良，不一定要成功，但要善良'
+    },
+    rawtext:''
+  };
+
+  /* ── NAVIGATION ── */
+  function go(screenId) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(screenId).classList.add('active');
+    window.scrollTo(0, 0);
+  }
+
+  /* ── TAGS ── */
+  function toggleTag(el) { el.classList.toggle('sel'); }
+
+  /* ── STEP TRANSITIONS ── */
+  function toStep2() {
+    capsule.name    = document.getElementById('f-name').value.trim() || '这位亲人';
+    capsule.rel     = document.getElementById('f-rel').value || '家人';
+    capsule.callme  = document.getElementById('f-callme').value.trim();
+    capsule.callher = document.getElementById('f-callher').value.trim() || capsule.rel;
+    capsule.tags    = Array.from(document.querySelectorAll('.tb.sel')).map(b => b.textContent);
+    capsule.verbal  = document.getElementById('f-verbal').value.trim();
+    capsule.accent  = document.getElementById('f-accent').value.trim();
+    go('s-step2');
+  }
+
+  function toStep3() {
+    capsule.qs = {
+      q1: document.getElementById('q1').value,
+      q2: document.getElementById('q2').value,
+      q3: document.getElementById('q3').value,
+      q4: document.getElementById('q4').value,
+      q5: document.getElementById('q5').value,
+    };
+    go('s-step3');
+  }
+
+  /* ── FILE UPLOAD ── */
+  function addFiles(input, listId, icon) {
+    const list = document.getElementById(listId);
+    Array.from(input.files).forEach(f => {
+      const item = document.createElement('div');
+      item.className = 'fi';
+      item.innerHTML = `<i class="ti ti-${icon}"></i><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${f.name}</span><span style="color:var(--text3);font-size:11px;flex-shrink:0">${(f.size/1024/1024).toFixed(1)}MB</span><button class="fi-rm" onclick="this.parentElement.remove()" aria-label="删除"><i class="ti ti-x"></i></button>`;
+      list.appendChild(item);
+    });
+    input.value = '';
+  }
+
+  /* ── DEMO ── */
+  function loadDemo() {
+    capsule = JSON.parse(JSON.stringify(DEMO));
+    startGenerate();
+  }
+
+  /* ── GENERATE ── */
+  async function startGenerate() {
+    if (document.getElementById('f-rawtext')) {
+      capsule.rawtext = document.getElementById('f-rawtext').value;
+    }
+    go('s-gen');
+
+    let prog = 0;
+    const pb = document.getElementById('pb');
+    const pbl = document.getElementById('pb-lbl');
+    const timer = setInterval(() => {
+      prog = Math.min(prog + Math.random() * 7, 88);
+      pb.style.width = Math.round(prog) + '%';
+      pbl.textContent = Math.round(prog) + '%';
+    }, 280);
+
+    const prompt = `你是一个创建"记忆胶囊"的AI助手，根据以下信息生成人物记忆档案，供AI角色扮演使用。
+
+姓名：${capsule.name} | 关系：${capsule.rel} | Ta称呼用户：${capsule.callme||'未填'} | 用户称呼Ta：${capsule.callher}
+性格：${capsule.tags.join('、')||'未选'} | 口头禅：${capsule.verbal||'未填'} | 口音：${capsule.accent||'未填'}
+
+问答：
+- 喜欢的食物：${capsule.qs.q1||'未填'}
+- 口头禅：${capsule.qs.q2||'未填'}
+- 最骄傲的事：${capsule.qs.q3||'未填'}
+- 面对错误的方式：${capsule.qs.q4||'未填'}
+- 最想说的话：${capsule.qs.q5||'未填'}
+- 额外文字：${capsule.rawtext||'无'}
+
+请严格按以下格式输出：
+[档案]
+（100字以内，第二人称"你是……"开头）
+[关键词]
+（5-8个词，逗号分隔）
+[说话规则]
+- （规则1）
+- （规则2）
+- （规则3）`;
+
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 1000,
+          messages: [{ role: 'user', content: prompt }]
+        })
+      });
+      const data = await res.json();
+      const text = data.content?.[0]?.text || '';
+
+      clearInterval(timer);
+      pb.style.width = '100%'; pbl.textContent = '100%';
+
+      const archiveM = text.match(/\[档案\]([\s\S]*?)(?=\[关键词\]|$)/);
+      const kwM      = text.match(/\[关键词\]([\s\S]*?)(?=\[说话规则\]|$)/);
+      const rulesM   = text.match(/\[说话规则\]([\s\S]*?)$/);
+
+      const archiveText = archiveM ? archiveM[1].trim() : text.slice(0, 200);
+      const keywords    = kwM ? kwM[1].trim().split(/[,，]/).map(s=>s.trim()).filter(Boolean) : [];
+      const rules       = rulesM ? rulesM[1].trim().split('\n').filter(l=>l.trim().startsWith('-')).map(l=>l.slice(1).trim()) : [];
+
+      persona = `${archiveText}\n\n你的名字是${capsule.name}，用户叫你"${capsule.callher}"，你叫用户"${capsule.callme||'用户'}"。\n\n说话规则：\n${rules.map(r=>'- '+r).join('\n')}\n\n【重要】你是记忆中的${capsule.name}，不是真实存在的人。你已经离开了，但你的爱和记忆留了下来。永远不要假装自己还活着。回答简短温暖，不超过120字。`;
+
+      document.getElementById('result-name').textContent = capsule.name + ' 的记忆档案';
+      document.getElementById('result-text').textContent = archiveText;
+
+      const tagsEl = document.getElementById('result-tags-wrap');
+      if (keywords.length) {
+        tagsEl.innerHTML = '<div style="font-size:11px;color:var(--text3);margin-bottom:5px">性格关键词</div>' +
+          keywords.map(k => `<span class="rtag">${k}</span>`).join('');
+      }
+
+      document.getElementById('gen-status').innerHTML = `
+        <div class="gen-ico"><i class="ti ti-check" style="font-size:22px"></i></div>
+        <div class="gen-title">${capsule.name} 的记忆档案已生成</div>
+        <div class="gen-hint">现在可以开始和 Ta 说话了</div>`;
+      document.getElementById('result-card').style.display = 'block';
+      document.getElementById('result-banner').style.display = 'flex';
+      document.getElementById('result-actions').style.display = 'block';
+
+    } catch (e) {
+      clearInterval(timer);
+      persona = `你是${capsule.name}，一位${capsule.rel}，温柔而有爱。你已经离开了，但你的记忆和爱留了下来。`;
+      document.getElementById('result-text').textContent = '（网络问题，使用基础档案）';
+      document.getElementById('result-card').style.display = 'block';
+      document.getElementById('result-actions').style.display = 'block';
+    }
+  }
+
+  /* ── OPEN CHAT ── */
+  function openChat() {
+    chatHistory = [];
+    const name = capsule.callher || capsule.rel;
+    document.getElementById('chat-hd-name').textContent = name + ' 的记忆';
+    document.getElementById('chat-welcome').textContent =
+      `你好 ${capsule.callme || ''}，${name}的记忆胶囊在这里陪着你`;
+
+    const chips = document.getElementById('q-chips');
+    chips.innerHTML = [
+      `${name}，你最喜欢什么？`,
+      `${name}，你最想对我说什么？`,
+      `${name}，你有没有害怕过？`,
+    ].map(q => `<button class="qc" onclick="sendQuick('${q.replace(/'/g,"\\'")}'">${q}</button>`).join('');
+
+    go('s-chat');
+  }
+
+  function sendQuick(text) {
+    document.getElementById('chat-input').value = text;
+    sendMsg();
+  }
+
+  /* ── CHAT ── */
+  function getTime() {
+    return new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function appendMsg(text, role) {
+    const c = document.getElementById('chat-msgs');
+    const wrap = document.createElement('div');
+    const msg  = document.createElement('div');
+    const t    = document.createElement('div');
+    msg.className = role === 'user' ? 'msg mu' : 'msg ma';
+    msg.textContent = text;
+    t.className = 'mt' + (role === 'user' ? ' mt-u' : '');
+    t.textContent = getTime();
+    wrap.appendChild(msg); wrap.appendChild(t);
+    c.appendChild(wrap);
+    c.scrollTop = c.scrollHeight;
+  }
+
+  async function sendMsg() {
+    if (isBusy) return;
+    const input = document.getElementById('chat-input');
+    const text  = input.value.trim();
+    if (!text) return;
+    input.value = '';
+    document.getElementById('q-chips').style.display = 'none';
+
+    appendMsg(text, 'user');
+    chatHistory.push({ role: 'user', content: text });
+    isBusy = true;
+
+    const c = document.getElementById('chat-msgs');
+    const tyEl = document.createElement('div');
+    tyEl.id = 'typing-el'; tyEl.className = 'typing';
+    tyEl.innerHTML = '<div class="dot"></div><div class="dot"></div><div class="dot"></div>';
+    c.appendChild(tyEl); c.scrollTop = c.scrollHeight;
+
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 1000,
+          system: persona || `你是${capsule.name}，一位${capsule.rel}。你已经离开了，但你的记忆留下来了。回答温暖简短。`,
+          messages: chatHistory
+        })
+      });
+      const data = await res.json();
+      const reply = data.content?.[0]?.text || '妈妈想了很久，但没有更好的答案……你再问我别的吧。';
+      document.getElementById('typing-el')?.remove();
+      appendMsg(reply, 'ai');
+      chatHistory.push({ role: 'assistant', content: reply });
+    } catch (e) {
+      document.getElementById('typing-el')?.remove();
+      appendMsg('信号不太好，你再说一遍好不好？', 'ai');
+    }
+    isBusy = false;
+  }
+</script>
+</body>
+</html>
